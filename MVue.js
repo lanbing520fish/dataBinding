@@ -4,10 +4,23 @@ const compileUtil = {
       return data[currentVal];
     }, vm.$data);
   },
+  serVal(expr, vm, inputVal) {
+    return expr.split(".").reduce((data, currentVal) => {
+      data[currentVal] = inputVal;
+    }, vm.$data);
+  },
+  getContentVal(expr, vm) {
+    return expr.replace(/\{\{(.+?)\}\}/g, (...args) => {
+      return this.getVal(args[1], vm);
+    });
+  },
   text(node, expr, vm) {
     let value;
     if (expr.indexOf("{{") !== -1) {
       value = expr.replace(/\{\{(.+?)\}\}/g, (...args) => {
+        new Watcher(vm, args[1], () => {
+          this.updater.textUpdater(node, this.getContentVal(expr, vm));
+        });
         return this.getVal(args[1], vm);
       });
     } else {
@@ -17,10 +30,19 @@ const compileUtil = {
   },
   html(node, expr, vm) {
     const value = this.getVal(expr, vm);
+    new Watcher(vm, expr, (newVal) => {
+      this.updater.htmlUpdater(node, newVal);
+    });
     this.updater.htmlUpdater(node, value);
   },
   model(node, expr, vm) {
     const value = this.getVal(expr, vm);
+    new Watcher(vm, expr, (newVal) => {
+      this.updater.modelUpdater(node, newVal);
+    });
+    node.addEventListener("input", (e) => {
+      this.serVal(expr, vm, e.target.value);
+    });
     this.updater.modelUpdater(node, value);
   },
   on(node, expr, vm, eventName) {
@@ -113,6 +135,19 @@ class MVue {
       //2.实现一个指令解析器
       new Observer(this.$data);
       new Compile(this.$el, this);
+      this.proxyData(this.$data);
+    }
+  }
+  proxyData(data) {
+    for (const key in data) {
+      Object.defineProperty(this, key, {
+        get() {
+          return data[key];
+        },
+        set(newVal) {
+          data[key] = newVal;
+        },
+      });
     }
   }
 }

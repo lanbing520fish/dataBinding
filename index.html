@@ -17,6 +17,7 @@
       <h3>{{msg}}</h3>
       <div v-text="msg"></div>
       <div v-text="person.name"></div>
+      <input type="text" v-model="person.name" />
       <div v-html="htmlStr"></div>
       <input type="text" v-model="msg" />
       <button v-on:click="alertInfo">019304</button>
@@ -39,7 +40,8 @@
       },
       methods: {
         alertInfo() {
-          alert("134134");
+          // alert("134134");
+          this.person.name = "学习MVVM";
         },
         alertInfo2() {
           console.log("2");
