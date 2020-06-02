@@ -16,10 +16,14 @@
       </ul>
       <h3>{{msg}}</h3>
       <div v-text="msg"></div>
+      <div v-text="person.name"></div>
       <div v-html="htmlStr"></div>
       <input type="text" v-model="msg" />
+      <button v-on:click="alertInfo">019304</button>
+      <button @click="alertInfo2">2</button>
     </div>
   </body>
+  <script src="./Observer.js"></script>
   <script src="./MVue.js"></script>
   <script>
     let vm = new MVue({
@@ -31,7 +35,15 @@
           fav: "game",
         },
         msg: "学习MVVM实现原理",
-        htmlStr: "nasdfdf",
+        htmlStr: "<h2>这里是html</h2>",
+      },
+      methods: {
+        alertInfo() {
+          alert("134134");
+        },
+        alertInfo2() {
+          console.log("2");
+        },
       },
     });
   </script>

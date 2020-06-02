@@ -1,3 +1,44 @@
+const compileUtil = {
+  getVal(expr, vm) {
+    return expr.split(".").reduce((data, currentVal) => {
+      return data[currentVal];
+    }, vm.$data);
+  },
+  text(node, expr, vm) {
+    let value;
+    if (expr.indexOf("{{") !== -1) {
+      value = expr.replace(/\{\{(.+?)\}\}/g, (...args) => {
+        return this.getVal(args[1], vm);
+      });
+    } else {
+      value = this.getVal(expr, vm);
+    }
+    this.updater.textUpdater(node, value);
+  },
+  html(node, expr, vm) {
+    const value = this.getVal(expr, vm);
+    this.updater.htmlUpdater(node, value);
+  },
+  model(node, expr, vm) {
+    const value = this.getVal(expr, vm);
+    this.updater.modelUpdater(node, value);
+  },
+  on(node, expr, vm, eventName) {
+    let fn = vm.$options.methods && vm.$options.methods[expr];
+    node.addEventListener(eventName, fn.bind(vm), false);
+  },
+  updater: {
+    textUpdater(node, value) {
+      node.textContent = value;
+    },
+    htmlUpdater(node, value) {
+      node.innerHTML = value;
+    },
+    modelUpdater(node, value) {
+      node.value = value;
+    },
+  },
+};
 class Compile {
   constructor(el, vm) {
     this.el = this.isElementNode(el) ? el : document.querySelector(el);
@@ -28,13 +69,27 @@ class Compile {
     [...attributes].forEach((attr) => {
       const { name, value } = attr;
       if (this.isDirective(name)) {
-        console.log(name, "true");
+        const [, dirctive] = name.split("-");
+        const [dirName, eventName] = dirctive.split(":");
+        compileUtil[dirName](node, value, this.vm, eventName);
+        node.removeAttribute("v-" + dirctive);
+      } else if (this.isEventName(name)) {
+        let [, eventName] = name.split("@");
+        compileUtil["on"](node, value, this.vm, eventName);
       }
     });
   }
-  compileText(node) {}
+  compileText(node) {
+    const content = node.textContent;
+    if (/\{\{(.+?)\}\}/.test(content)) {
+      compileUtil["text"](node, content, this.vm);
+    }
+  }
   isElementNode(node) {
     return node.nodeType === 1;
+  }
+  isEventName(attrName) {
+    return attrName.startsWith("@");
   }
   isDirective(attrName) {
     return attrName.startsWith("v-");
@@ -56,6 +111,7 @@ class MVue {
     if (this.$el) {
       //1.实现一个数据观察者
       //2.实现一个指令解析器
+      new Observer(this.$data);
       new Compile(this.$el, this);
     }
   }
